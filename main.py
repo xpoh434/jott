@@ -398,5 +398,5 @@ def close_connection(exception):
         db = get_db(db_name)
         db.close()
 
-
-app.run("0.0.0.0", port=8000 if app.config["DEBUG"] else 5000)
+if __name__ == '__main__':
+    app.run("0.0.0.0", port=8000 if app.config["DEBUG"] else 5000)
