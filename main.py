@@ -346,6 +346,25 @@ def stats():
     ).format(visit_count, note_count, author_count, top_paths_str, top_referrers_str)
 
 
+@app.route("/list")
+def list():
+    db = get_db("notes")
+
+    with db:
+        c = db.cursor()
+
+        notes = c.execute("""select name from notes""")
+
+        note_list = []
+        note_link_temp = "1. [%s](%s)"
+
+        for n in notes:
+            note_list.append(note_link_temp % (n[0], '/texdown/%s'% n))
+
+        return render_template("texdown.html", name="notes-list",
+                               note='\n'.join(note_list))
+
+
 @app.before_first_request
 def initialize_dbs():
     db = get_db("notes")
