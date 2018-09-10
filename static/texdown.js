@@ -519,7 +519,7 @@ function moo_factory() {
 }
 const moo = moo_factory();
 const tokens = {
-    pre: /```\n[ -~\n]+\n```/,
+    pre: /```\n[ -~\n]+?\n```/,
     h6: /^###### /,
     h5: /^##### /,
     h4: /^#### /,
