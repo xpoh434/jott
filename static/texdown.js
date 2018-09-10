@@ -519,6 +519,7 @@ function moo_factory() {
 }
 const moo = moo_factory();
 const tokens = {
+    pre: /```\n[ -~\n]+\n```/,
     h6: /^###### /,
     h5: /^##### /,
     h4: /^#### /,
@@ -700,6 +701,12 @@ function texDown(src, ...renderers) {
             clearElements();
             renderers.forEach(r => r.hr());
         },
+        pre: () => {
+            clearElements();
+            const txt = currentToken.text;
+            const tex = txt.substring(4, txt.length - 4);
+            renderers.forEach(r => r.pre(tex));
+        },
         esc: () => {
             renderers.forEach(r => r.esc(currentToken.text));
         },
@@ -759,6 +766,7 @@ class Renderer {
     this.img = (title, src) => this.res += `<img title='${title}' src='${src}' />`;
     this.esc = (val) => this.res += val[0];
     this.txt = (val) => this.res += val;
+    this.pre = (val) => this.res += `<div class='pre'><pre>${val}</pre></div>`;
     this.tikz = (tikz) => this.res += `<tikz>${tikz}</tikz>`;
     this.eol = () => { };
     this.blank = () => { };
