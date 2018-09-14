@@ -202,6 +202,17 @@ def texdown_note(name):
     return render_template("texdown.html", name=name, note=note)
 
 
+@app.route("/csv/<name>")
+@app.route("/csv/note/<name>")
+def csv_note(name):
+    conn = get_db("notes")
+    c = conn.cursor()
+    c.execute("SELECT note FROM notes WHERE name=?", (name,))
+    result = c.fetchone()
+    note = result[0] if result else ""
+    return render_template("csv.html", name=name, note=note)
+
+
 @app.route("/code/<name>")
 @app.route("/code/note/<name>")
 def code_note(name):
