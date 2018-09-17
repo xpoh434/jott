@@ -23,6 +23,7 @@ body {
 }
 pre {
     font-family: 'Inconsolata', monospace;
+    display: none;
 }
 .center {
     text-align: center;
@@ -41,11 +42,10 @@ td.cell:hover {
     background-color: aliceblue;
 }
 
-tr.row_1 td {
+tr.row_0 td {
     font-weight: bold;
 }
 </style>
-
 <script type="text/x-mathjax-config">
       MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
 </script>
@@ -55,26 +55,61 @@ tr.row_1 td {
 
 // A series of rendering passes
 function render(elem) {
-    let contents = elem.textContent;
+    let contents = document.getElementById('note-data').textContent;
 //    let renderer = new Renderer();
 //    texDown(contents, renderer);
+
     let new_elem = document.createElement('div');
+    new_elem.id = 'note-container';
 //    new_elem.innerHTML = renderer.res;
 
-    data = d3.csvParseRows(contents)
+    let data = d3.csvParseRows(contents);
+    let ncols = data[0].length;
+    let columns_values = {};
+    for(var col=0;col<ncols;col++) {
+        let value_set = new Set();
+        for(var i=0;i<data.length;i++) {
+            value_set.add(data[i][col]) ;
+        }
+     	let value_list = Array.from(value_set);
+	    value_list.sort()
+        columns_values[col] = value_list;
+    }
    
-    let row_num = 0
+    let filter_values = new Array(ncols);
+    for(var col=0;col<ncols;col++) {
+        filter_values[col] = '-'
+        let filter=document.getElementById("filter_" + col)
+        if(filter != undefined) {
+            if(filter.value == '-') continue;
+            filter_values[col] = filter.value
+            data = data.filter((value,i)=>{return i==0 || value[col]==filter.value;});
+        }
+    }
+    j = 0
     d3.select(new_elem)
     .append("table")
     .selectAll("tr")
     .data(data)
     .enter().append("tr")
-    .attr("class", function(d) {row_num++;return "row_"+row_num;})
+    .attr("class", function(d, i) {return "row_"+i;})
     .selectAll("td")
-    .data(function(d){return d;})
+    .data(function(d, i){ return d.map(x=>[i,x]); })
     .enter().append("td")
     .attr("class","cell")
-    .text(function(d){return d;})
+    .html(function(d,col){
+        if (d[0] == 0) {
+           html = d[1] + "<br><select id=\"filter_"+col+"\" onchange=\"update()\"><option values=\"-\">-</option>";
+           for (var i=0;i<columns_values[col].length;i++) {
+               let option_value=columns_values[col][i]
+               html += "<option value=\""+option_value+"\"" + (filter_values[col] == option_value ? " selected" : "") +">"+option_value+"</option>";
+           }
+           html += "</select>"
+        } else {
+            html = d[1];
+        }
+        return html
+    })
     elem.parentNode.replaceChild(new_elem, elem);
     MathJax.Hub.Queue(["Typeset",MathJax.Hub]);
 }
@@ -83,12 +118,19 @@ window.addEventListener('load', function() {
     render(document.getElementById('note-container'));
 });
 
+function update() {
+    render(document.getElementById('note-container'));
+}
+
 </script>
 </head>
 
 <body>
 
-<pre id="note-container">{{ note }}</pre>
+<pre id="note-data">{{ note }}</pre>
+<div>
+<div id="note-container"></div>
+</div>
 
 </body>
 </html>
