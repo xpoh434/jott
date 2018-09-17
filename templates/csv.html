@@ -31,6 +31,19 @@ div.pre {
     border: solid 1px;
     padding: 0px 10px 0px 10px;
 }
+table, td, th {
+    border-collapse: collapse;
+    border: 2px black solid;
+    padding: 1ex;
+}
+
+td.cell:hover {
+    background-color: aliceblue;
+}
+
+tr.row_1 td {
+    font-weight: bold;
+}
 </style>
 
 <script type="text/x-mathjax-config">
@@ -47,24 +60,21 @@ function render(elem) {
 //    texDown(contents, renderer);
     let new_elem = document.createElement('div');
 //    new_elem.innerHTML = renderer.res;
+
+    data = d3.csvParseRows(contents)
+   
+    let row_num = 0
     d3.select(new_elem)
     .append("table")
-    .style("border-collapse", "collapse")
-    .style("border", "2px black solid")
-
     .selectAll("tr")
-    .data(d3.csvParseRows(contents))
+    .data(data)
     .enter().append("tr")
-
+    .attr("class", function(d) {row_num++;return "row_"+row_num;})
     .selectAll("td")
     .data(function(d){return d;})
     .enter().append("td")
-    .style("border", "1px black solid")
-    .style("padding", "5px")
-    .on("mouseover", function(){d3.select(this).style("background-color", "aliceblue")})
-    .on("mouseout", function(){d3.select(this).style("background-color", "white")})
+    .attr("class","cell")
     .text(function(d){return d;})
-    .style("font-size", "12px");
     elem.parentNode.replaceChild(new_elem, elem);
     MathJax.Hub.Queue(["Typeset",MathJax.Hub]);
 }
