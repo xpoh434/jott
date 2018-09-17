@@ -68,7 +68,7 @@ function render(elem) {
     let columns_values = {};
     for(var col=0;col<ncols;col++) {
         let value_set = new Set();
-        for(var i=0;i<data.length;i++) {
+        for(var i=1;i<data.length;i++) {
             value_set.add(data[i][col]) ;
         }
      	let value_list = Array.from(value_set);
