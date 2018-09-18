@@ -18,8 +18,36 @@ body {
     padding: 10px;
 }
 #name {
-    width: 100%;
+    position: absolute;
+    height: 20px;
+    width: 85%;
+    left: 0;
+    margin: 0;
+    padding: 0;
+    padding-left: 5px;
+    border: none;
+    background: #eee;
+    font-family: 'Inconsolata', monospace;
     font-weight: bold;
+}
+.dimmed {
+    color: #eee;
+}
+button {
+    position: absolute;
+    height: 20px;
+    width: 15%;
+    right: 0;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: #eee;
+    font-family: 'Inconsolata', monospace;
+    font-weight: bold;
+}
+button:hover{
+    background: #aaa;
+    cursor:pointer;
 }
 pre {
     font-family: 'Inconsolata', monospace;
@@ -35,7 +63,7 @@ div.pre {
 table, td, th {
     border-collapse: collapse;
     border: 2px black solid;
-    padding: 0px;
+    padding: 3px;
 }
 
 td.cell:hover {
@@ -57,6 +85,10 @@ textarea {
     min-height: 0px;
     line-height: 1;
     box-sizing: border-box;
+    background: transparent;
+    padding: 0px;
+    box-shadow: none;
+    outline: none;
 }
 
 button, input, select {
@@ -86,6 +118,69 @@ var ncols = 0;
 
 
 var editing = new Set()
+
+
+function to_csv(odata) {
+	return odata.map(row=>row.map(cell=> {
+        if (cell.indexOf('\n') >=0 ||
+        cell.indexOf('\r') >= 0 ||
+        cell.indexOf('"')>=0 ||
+        cell.indexOf(',')>=0) {
+            cell = cell.replace('"','""')
+            cell = '"' + cell + '"'
+        }
+        return cell
+    }).join(",")).join("\n")
+}
+
+function save_note(button, input) {
+    let note = to_csv(odata)
+    let name_pass = input.value.split('#');
+    let name = encodeURIComponent(name_pass[0]);
+    if (name == '') {
+        alert("Note needs a name");
+        return;
+    }
+    let pass = '';
+    if (name_pass.length > 1) {
+        pass = encodeURIComponent(name_pass[1]);
+    }
+    let httpRequest = new XMLHttpRequest();
+    httpRequest.onreadystatechange = function(){
+        if (httpRequest.readyState == 4) {
+            if (httpRequest.status != 200) {
+                alert("Error: " + httpRequest.response);
+            } else {
+                var newurl = window.location.origin +
+                    '/csv/' +
+                    name;
+                window.history.pushState(
+                    { path: newurl }, 
+                    '', 
+                    newurl);
+                button.classList.toggle('dimmed', true);
+                button.onclick = function() {};
+                setTimeout(function(){
+                    button.classList.toggle('dimmed', false);
+                    button.onclick = function() {save_note(
+                        this,
+                    )};
+                }, 5000);
+            }
+        }
+    };
+    httpRequest.open('POST',
+        window.location.origin +
+        '/save/note/' +
+        name + '/' + pass,
+        true);
+    httpRequest.setRequestHeader('Content-Type', 'application/json');
+    httpRequest.send(JSON.stringify({
+        note: note})
+    );
+}
+
+
 
 function load_data() {
     let contents = document.getElementById('note-container').textContent;
@@ -214,6 +309,13 @@ function update() {
 </head>
 
 <body>
+<input id="name" value="{{name}}" placeholder="name#password"/>
+<button onclick="save_note(
+    this,
+    document.getElementById('name')
+    )">save</button>
+<br>
+<br>
 <div>
 <div id="note-container">{{ note }}</div>
 </div>
