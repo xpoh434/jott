@@ -56,6 +56,7 @@ textarea {
     text-align: inherit;
     min-height: 0px;
     line-height: 1;
+    box-sizing: border-box;
 }
 
 button, input, select {
@@ -137,15 +138,19 @@ function edit_cell(e) {
     editing.add(o)
 
     let elem = document.createElement('div')
-    elem.className = 'cell_edit' 
-    let html = "<textarea onkeydown='handle_esc(event)' onblur='update_cell(event)' data-row=" + o.dataset.row + " " +
-    "data-col=" + o.dataset.col + ">" + odata[o.dataset.row][o.dataset.col] + "</textarea>"
+    elem.className = 'cell_edit'
+    let text = odata[o.dataset.row][o.dataset.col]
+
+    let nlines = Math.max(text.split(/\r\n|\r|\n/).length, 1)
+    let html = "<textarea rows="+nlines+" onkeydown='handle_esc(event)' onblur='update_cell(event)' data-row=" + o.dataset.row + " " +
+    "data-col=" + o.dataset.col + ">" + text + "</textarea>"
     elem.innerHTML = html.trim()
     if (o.firstChild == undefined) {
        o.appendChild(elem)
     } else {
        o.replaceChild(elem, o.firstChild)
     }
+
     elem.firstChild.focus()
 }
 
