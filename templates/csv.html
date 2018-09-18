@@ -35,7 +35,7 @@ div.pre {
 table, td, th {
     border-collapse: collapse;
     border: 2px black solid;
-    padding: 1ex;
+    padding: 0px;
 }
 
 td.cell:hover {
@@ -45,6 +45,32 @@ td.cell:hover {
 tr.row_0 td {
     font-weight: bold;
 }
+
+textarea {
+    margin: 0px;
+    width: 100%;
+    height: 100%;
+    border: none;
+    font-family: inherit;
+    font-size: inherit;
+    text-align: inherit;
+    min-height: 0px;
+    line-height: 1;
+}
+
+button, input, select {
+    font-family: inherit;
+    font-size: inherit;
+    text-align: inherit;
+}
+
+div.cell_edit {
+    padding: 0px;
+    margin: 0px;
+    width: 100%;
+    height: 100%;
+}
+
 </style>
 <script type="text/x-mathjax-config">
       MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
@@ -53,50 +79,106 @@ tr.row_0 td {
 <script src="/static/d3.js"></script>
 <script>
 
-// A series of rendering passes
-function render(elem) {
-    let contents = document.getElementById('note-data').textContent;
-//    let renderer = new Renderer();
-//    texDown(contents, renderer);
+var odata = undefined;
+var columns_values = undefined;
+var ncols = 0;
 
-    let new_elem = document.createElement('div');
-    new_elem.id = 'note-container';
-//    new_elem.innerHTML = renderer.res;
 
-    let data = d3.csvParseRows(contents);
-    let ncols = data[0].length;
-    let columns_values = {};
+var editing = new Set()
+
+function load_data() {
+    let contents = document.getElementById('note-container').textContent;
+    odata = d3.csvParseRows(contents);
+    ncols = odata[0].length;
+    columns_values = {};
     for(var col=0;col<ncols;col++) {
         let value_set = new Set();
-        for(var i=1;i<data.length;i++) {
-            value_set.add(data[i][col]) ;
+        for(var i=1;i<odata.length;i++) {
+            value_set.add(odata[i][col]) ;
         }
      	let value_list = Array.from(value_set);
 	    value_list.sort()
         columns_values[col] = value_list;
     }
-   
+}
+
+
+function update_cell(e) {
+    let o = e.target
+
+    let parent = o
+    while(parent != undefined) {
+        if(editing.has(parent)) {
+            editing.delete(parent);
+            break;
+        }
+        parent = parent.parentNode
+    }
+
+    odata[o.dataset.row][o.dataset.col] = o.value
+    let elem = document.createTextNode(odata[o.dataset.row][o.dataset.col])
+    o.parentNode.parentNode.replaceChild(elem, o.parentNode)
+}
+
+function handle_esc(e) {
+    let o = e.target
+    if (e.which == 27) {
+        o.blur()
+    }
+}
+
+function edit_cell(e) {
+    let o = e.target
+    let parent = o
+    while (parent != undefined) {
+        if (editing.has(parent)) return;
+        parent = parent.parentNode
+    }
+    editing.add(o)
+
+    let elem = document.createElement('div')
+    elem.className = 'cell_edit' 
+    let html = "<textarea onkeydown='handle_esc(event)' onblur='update_cell(event)' data-row=" + o.dataset.row + " " +
+    "data-col=" + o.dataset.col + ">" + odata[o.dataset.row][o.dataset.col] + "</textarea>"
+    elem.innerHTML = html.trim()
+    if (o.firstChild == undefined) {
+       o.appendChild(elem)
+    } else {
+       o.replaceChild(elem, o.firstChild)
+    }
+    elem.firstChild.focus()
+}
+
+// A series of rendering passes
+function render(elem) {
+    let new_elem = document.createElement('div');
+    new_elem.id = 'note-container';
     let filter_values = new Array(ncols);
+    let rows = [...Array(odata.length).keys()];
     for(var col=0;col<ncols;col++) {
         filter_values[col] = '-'
         let filter=document.getElementById("filter_" + col)
         if(filter != undefined) {
             if(filter.value == '-') continue;
             filter_values[col] = filter.value
-            data = data.filter((value,i)=>{return i==0 || value[col]==filter.value;});
+            rows = rows.filter(i=>{return i==0 || odata[i][col]==filter.value;});
         }
     }
     j = 0
     d3.select(new_elem)
     .append("table")
     .selectAll("tr")
-    .data(data)
+    .data(rows.map(i=>odata[i]))
     .enter().append("tr")
     .attr("class", function(d, i) {return "row_"+i;})
     .selectAll("td")
     .data(function(d, i){ return d.map(x=>[i,x]); })
     .enter().append("td")
     .attr("class","cell")
+    .attr("onclick", function(d, i) { return d[0] >0 ? "edit_cell(event)" : ""; } )
+    .attr("data-col", function(d, col) { return col; })
+    .attr("data-row", function(d) { return d[0]; })
+    .attr("id", function(d, col) { return "cell_" + d[0] + "_" + col;} )
     .html(function(d,col){
         if (d[0] == 0) {
            html = d[1] + "<br><select id=\"filter_"+col+"\" onchange=\"update()\"><option values=\"-\">-</option>";
@@ -115,6 +197,7 @@ function render(elem) {
 }
 
 window.addEventListener('load', function() {
+    load_data()
     render(document.getElementById('note-container'));
 });
 
@@ -126,10 +209,8 @@ function update() {
 </head>
 
 <body>
-
-<pre id="note-data">{{ note }}</pre>
 <div>
-<div id="note-container"></div>
+<div id="note-container">{{ note }}</div>
 </div>
 
 </body>
