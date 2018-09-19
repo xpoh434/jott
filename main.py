@@ -370,7 +370,11 @@ def list():
         note_link_temp = "1. [%s](%s)"
 
         for n in notes:
-            note_list.append(note_link_temp % (n[0], '/texdown/%s'% n))
+            if '.' in n[0]:
+                type_ = n[0].split('.')[-1]
+            else:
+                type_ = 'texdown'
+            note_list.append(note_link_temp % (n[0], '/%s/%s'% (type_,n[0])))
 
         return render_template("texdown.html", name="notes-list",
                                note='\n'.join(note_list))
