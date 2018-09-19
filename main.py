@@ -202,6 +202,7 @@ def texdown_note(name):
     return render_template("texdown.html", name=name, note=note)
 
 
+@app.route("/edit/csv/<name>")
 @app.route("/csv/<name>")
 @app.route("/csv/note/<name>")
 def csv_note(name):
@@ -367,14 +368,14 @@ def list():
         notes = c.execute("""select name from notes""")
 
         note_list = []
-        note_link_temp = "1. [%s](%s)"
+        note_link_temp = "1. [%s](%s) [[edit](%s)]"
 
         for n in notes:
             if '.' in n[0]:
                 type_ = n[0].split('.')[-1]
             else:
                 type_ = 'texdown'
-            note_list.append(note_link_temp % (n[0], '/%s/%s'% (type_,n[0])))
+            note_list.append(note_link_temp % (n[0], '/%s/%s'% (type_,n[0]), '/edit/%s/%s'%(type_, n[0])))
 
         return render_template("texdown.html", name="notes-list",
                                note='\n'.join(note_list))
