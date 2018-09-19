@@ -118,7 +118,7 @@ var ncols = 0;
 
 
 var editing = new Set()
-
+var rendered = false
 
 function to_csv(odata) {
 	return odata.map(row=>row.map(cell=> {
@@ -299,10 +299,45 @@ function render(elem) {
 window.addEventListener('load', function() {
     load_data()
     render(document.getElementById('note-container'));
+    rendered = true;
 });
 
 function update() {
     render(document.getElementById('note-container'));
+}
+
+function add_row(e) {
+    let row = odata.length
+    if(e.target != undefined && e.target.tagName == 'TEXTAREA') {
+        row = e.target.parentNode.parentNode.dataset.row
+     }
+     rowdata = odata[Math.min(row, odata.length-1)].slice(0)
+     rowdata.fill("")
+     odata.splice(row, 0, rowdata)
+     update()
+}
+
+function delete_row(e) {
+    if(e.target != undefined && e.target.tagName == 'TEXTAREA') {
+       let row = e.target.parentNode.parentNode.dataset.row
+       odata.splice(row, 1)
+       update()
+    }
+}
+
+
+document.onkeydown = function(e) {
+    if(!rendered) {
+        return true;
+    }
+    if(e.which == 65 && e.ctrlKey && e.shiftKey && !e.altKey) {  
+        add_row(e)
+        return false;
+    } else if(e.which == 68 && e.ctrlKey && e.shiftKey && !e.altKey) {
+        delete_row(e)
+        return false;
+    }
+    return true;
 }
 
 </script>
