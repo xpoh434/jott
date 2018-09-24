@@ -220,6 +220,17 @@ function handle_esc(e) {
     let o = e.target
     if (e.which == 27) {
         o.blur()
+        e.peventDefault()
+        return false;
+    } else if (e.which == 9) {
+        o.blur()
+        row = o.dataset.row
+        col = o.dataset.col
+        elem = document.getElementById('cell_'+row+'_'+(+col+1))
+        if(elem == undefined) elem = document.getElementById('cell_'+(+row+1)+'_0')
+        if(elem != undefined) elem.click()
+        e.preventDefault()
+        return false;
     }
 }
 
