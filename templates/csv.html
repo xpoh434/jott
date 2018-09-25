@@ -279,18 +279,18 @@ function render(elem) {
     d3.select(new_elem)
     .append("table")
     .selectAll("tr")
-    .data(rows.map(i=>odata[i]))
+    .data(rows.map(i=>[i, odata[i]]))
     .enter().append("tr")
-    .attr("class", function(d, i) {return "row_"+i;})
+    .attr("class", function(d) {return "row_"+d[0];})
     .selectAll("td")
-    .data(function(d, i){ return d.map(x=>[i,x]); })
+    .data(function(d){ return d[1].map(x=>[d[0], x]); })
     .enter().append("td")
     .attr("class","cell")
-    .attr("onclick", function(d, i) { return d[0] >0 ? "edit_cell(event)" : ""; } )
-    .attr("data-col", function(d, col) { return col; })
+    .attr("onclick", function(d) { return d[0] >0 ? "edit_cell(event)" : ""; } )
+    .attr("data-col", function(d, i) { return i; })
     .attr("data-row", function(d) { return d[0]; })
-    .attr("id", function(d, col) { return "cell_" + d[0] + "_" + col;} )
-    .html(function(d,col){
+    .attr("id", function(d, i) { return "cell_" + d[0] + "_" + i;} )
+    .html(function(d, col){
         if (d[0] == 0) {
            html = d[1] + "<br><select id=\"filter_"+col+"\" onchange=\"update()\"><option values=\"-\">-</option>";
            for (var i=0;i<columns_values[col].length;i++) {
