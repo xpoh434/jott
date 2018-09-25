@@ -1,4 +1,5 @@
-<html>
+<html
+
 <meta name="viewport" content="width=device-width, user-scalable=no" />
 <head>
 <link rel="icon" href="/static/favicon.ico" type="image/x-icon"/>
@@ -115,10 +116,14 @@ div.cell_edit {
 var odata = undefined;
 var columns_values = undefined;
 var ncols = 0;
-
+var headers_name2col =  {}
+var headers_col2name = {}
 
 var editing = new Set()
 var rendered = false
+
+var display_rows = []
+var filter_values = {}
 
 function to_csv(odata) {
 	return odata.map(row=>row.map(cell=> {
@@ -188,6 +193,8 @@ function load_data() {
     ncols = odata[0].length;
     columns_values = {};
     for(var col=0;col<ncols;col++) {
+        headers_name2col[odata[0][col]] = col
+        headers_col2name[col] = odata[0][col]
         let value_set = new Set();
         for(var i=1;i<odata.length;i++) {
             value_set.add(odata[i][col]) ;
@@ -196,6 +203,8 @@ function load_data() {
 	    value_list.sort()
         columns_values[col] = value_list;
     }
+
+    display_rows = [...Array(odata.length).keys()];
 }
 
 
@@ -260,21 +269,34 @@ function edit_cell(e) {
     elem.firstChild.focus()
 }
 
+
+function update_filters() {
+    for(var col=0;col<ncols;col++) {
+        //filter_values[headers_col2name[col]] = '-'
+        let filter=document.getElementById("filter_" + col)
+        if(filter != undefined) {
+            if(filter.value == '-') {
+                delete filter_values[headers_col2name[col]]
+                continue;
+            }
+            filter_values[headers_col2name[col]] = filter.value
+//            rows = rows.filter(i=>{return i==0 || odata[i][col]==filter.value;});
+        }
+    }
+    params = []
+    for(let f in filter_values) {
+        params.push(encodeURIComponent(f) + '=' + encodeURIComponent(filter_values[f]))
+    }
+    window.location.search = params.join('&')
+}
+
 // A series of rendering passes
 function render(elem) {
     let new_elem = document.createElement('div');
     new_elem.id = 'note-container';
-    let filter_values = new Array(ncols);
-    let rows = [...Array(odata.length).keys()];
-    for(var col=0;col<ncols;col++) {
-        filter_values[col] = '-'
-        let filter=document.getElementById("filter_" + col)
-        if(filter != undefined) {
-            if(filter.value == '-') continue;
-            filter_values[col] = filter.value
-            rows = rows.filter(i=>{return i==0 || odata[i][col]==filter.value;});
-        }
-    }
+//    let filter_values = new Array(ncols);
+//    let rows = [...Array(odata.length).keys()];
+    let rows = display_rows
     j = 0
     d3.select(new_elem)
     .append("table")
@@ -295,7 +317,7 @@ function render(elem) {
            html = d[1] + "<br><select id=\"filter_"+col+"\" onchange=\"update()\"><option values=\"-\">-</option>";
            for (var i=0;i<columns_values[col].length;i++) {
                let option_value=columns_values[col][i]
-               html += "<option value=\""+option_value+"\"" + (filter_values[col] == option_value ? " selected" : "") +">"+option_value+"</option>";
+               html += "<option value=\""+option_value+"\"" + (filter_values[d[1]] == option_value ? " selected" : "") +">"+option_value+"</option>";
            }
            html += "</select>"
         } else {
@@ -307,14 +329,31 @@ function render(elem) {
     MathJax.Hub.Queue(["Typeset",MathJax.Hub]);
 }
 
+
+function setup_filters() {
+    let params = window.location.search.substr(1)
+    if(params.indexOf('&') < 0) return;
+    let items = params.split('&')
+    for (let i=0;i<items.length;i++){
+        let pair = items[i].split('=')
+        let key = decodeURIComponent(pair[0])
+        let value = decodeURIComponent(pair[1])
+        filter_values[key] = value
+        let col = headers_name2col[key]
+        display_rows = display_rows.filter(i=>{return i==0 || odata[i][col]==value;});
+    }
+}
+
 window.addEventListener('load', function() {
     load_data()
+    setup_filters()
     render(document.getElementById('note-container'));
     rendered = true;
 });
 
 function update() {
-    render(document.getElementById('note-container'));
+    //render(document.getElementById('note-container'));
+    update_filters()
 }
 
 function add_row(e) {
