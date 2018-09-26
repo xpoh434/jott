@@ -332,9 +332,9 @@ function render(elem) {
 
 function setup_filters() {
     let params = window.location.search.substr(1)
-    if(params.indexOf('&') < 0) return;
     let items = params.split('&')
     for (let i=0;i<items.length;i++){
+        if(items[i] == "") continue
         let pair = items[i].split('=')
         let key = decodeURIComponent(pair[0])
         let value = decodeURIComponent(pair[1])
