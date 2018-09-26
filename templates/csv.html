@@ -1,6 +1,6 @@
 <html
 
-<meta name="viewport" content="width=device-width, user-scalable=no" />
+<meta name="viewport" content="width=device-width, user-scalable=yes" />
 <head>
 <link rel="icon" href="/static/favicon.ico" type="image/x-icon"/>
 <link rel="apple-touch-icon" href="/static/jott-icon.png">
@@ -65,6 +65,7 @@ table, td, th {
     border-collapse: collapse;
     border: 2px black solid;
     padding: 3px;
+    word-wrap: break-word;
 }
 
 td.cell:hover {
@@ -98,6 +99,9 @@ button, input, select {
     text-align: inherit;
 }
 
+select.filter {
+    width: 100%
+}
 div.cell_edit {
     padding: 0px;
     margin: 0px;
@@ -124,6 +128,9 @@ var rendered = false
 
 var display_rows = []
 var filter_values = {}
+var column_widths = {}
+
+var hash_dict = {}
 
 function to_csv(odata) {
 	return odata.map(row=>row.map(cell=> {
@@ -272,30 +279,29 @@ function edit_cell(e) {
 
 function update_filters() {
     for(var col=0;col<ncols;col++) {
-        //filter_values[headers_col2name[col]] = '-'
         let filter=document.getElementById("filter_" + col)
         if(filter != undefined) {
             if(filter.value == '-') {
-                delete filter_values[headers_col2name[col]]
+                //delete filter_values[headers_col2name[col]]
+                update_hash(headers_col2name[col] + '.f', undefined)
                 continue;
             }
-            filter_values[headers_col2name[col]] = filter.value
-//            rows = rows.filter(i=>{return i==0 || odata[i][col]==filter.value;});
+            //filter_values[headers_col2name[col]] = filter.value
+            update_hash(headers_col2name[col] + '.f', filter.value)
         }
     }
-    params = []
-    for(let f in filter_values) {
-        params.push(encodeURIComponent(f) + '=' + encodeURIComponent(filter_values[f]))
-    }
-    window.location.search = params.join('&')
+
+//    let params = []
+//    for(let f in filter_values) {
+//        params.push(encodeURIComponent(f) + '=' + encodeURIComponent(filter_values[f]))
+//    }
+//    window.location.search = params.join('&')
 }
 
 // A series of rendering passes
 function render(elem) {
     let new_elem = document.createElement('div');
     new_elem.id = 'note-container';
-//    let filter_values = new Array(ncols);
-//    let rows = [...Array(odata.length).keys()];
     let rows = display_rows
     j = 0
     d3.select(new_elem)
@@ -304,17 +310,17 @@ function render(elem) {
     .data(rows.map(i=>[i, odata[i]]))
     .enter().append("tr")
     .attr("class", function(d) {return "row_"+d[0];})
-    .selectAll("td")
+    .selectAll(function(d){return this.querySelectorAll((d[0]==0)?"th":"td");})
     .data(function(d){ return d[1].map(x=>[d[0], x]); })
-    .enter().append("td")
-    .attr("class","cell")
+    .enter().append(function(d) {return document.createElement((d[0]==0) ? "th" : "td");})
+    .attr("class",function(d, i) {return "cell col_" + i})
     .attr("onclick", function(d) { return d[0] >0 ? "edit_cell(event)" : ""; } )
     .attr("data-col", function(d, i) { return i; })
     .attr("data-row", function(d) { return d[0]; })
     .attr("id", function(d, i) { return "cell_" + d[0] + "_" + i;} )
     .html(function(d, col){
         if (d[0] == 0) {
-           html = d[1] + "<br><select id=\"filter_"+col+"\" onchange=\"update()\"><option values=\"-\">-</option>";
+           html = d[1] + "<br><select class=\"filter\" id=\"filter_"+col+"\" onchange=\"update()\"><option values=\"-\">-</option>";
            for (var i=0;i<columns_values[col].length;i++) {
                let option_value=columns_values[col][i]
                html += "<option value=\""+option_value+"\"" + (filter_values[d[1]] == option_value ? " selected" : "") +">"+option_value+"</option>";
@@ -326,34 +332,165 @@ function render(elem) {
         return html
     })
     elem.parentNode.replaceChild(new_elem, elem);
+    new_elem.firstChild.style.width = new_elem.offsetWidth + 'px';
     MathJax.Hub.Queue(["Typeset",MathJax.Hub]);
 }
 
 
 function setup_filters() {
-    let params = window.location.search.substr(1)
+//    let params = window.location.search.substr(1)
+//    let items = params.split('&')
+//    for (let i=0;i<items.length;i++){
+//        if(items[i] == "") continue
+//        let pair = items[i].split('=')
+//        let key = decodeURIComponent(pair[0])
+//        if(!key.endsWith(".f")) continue;
+//        let value = decodeURIComponent(pair[1])
+//        filter_values[key] = value
+//        let col = headers_name2col[key]
+//        display_rows = display_rows.filter(i=>{return i==0 || odata[i][col]==value;});
+//    }
+    display_rows = [...Array(odata.length).keys()];
+    filter_values = {}
+    for(let k in hash_dict) {
+        if(k.endsWith('.f')) {
+            let colname = k.substr(0,k.length-2)
+            let col = headers_name2col[colname]
+            value = hash_dict[k]
+            filter_values[colname] = value
+            display_rows = display_rows.filter(i=>{return i==0 || odata[i][col]==value;});
+        }
+    }
+    
+}
+
+
+function setup_hash() {
+    let params = window.location.hash.substr(1)
     let items = params.split('&')
     for (let i=0;i<items.length;i++){
         if(items[i] == "") continue
         let pair = items[i].split('=')
         let key = decodeURIComponent(pair[0])
         let value = decodeURIComponent(pair[1])
-        filter_values[key] = value
-        let col = headers_name2col[key]
-        display_rows = display_rows.filter(i=>{return i==0 || odata[i][col]==value;});
+        hash_dict[key] = value
     }
+}
+
+function update_hash_string() {
+    let params = []
+    for(let k in hash_dict) {
+        params.push(encodeURIComponent(k) + '=' + encodeURIComponent(hash_dict[k]))
+    }
+    window.location.hash = params.join('&')
+}
+
+
+function update_hash(key, value) {
+    if(value == undefined) {
+        delete hash_dict[key]
+    } else {
+        hash_dict[key] = value
+    }
+    update_hash_string()    
+}
+
+
+function update_width() {
+    for(let k in hash_dict) {
+        if(k.endsWith('.w')) {
+            if(k == '__tbl.w') {
+                let tbl = document.getElementById('note-container').getElementsByTagName('table')[0]
+                let new_width = +hash_dict[k]
+                tbl.style.maxWidth = new_width + 'px';
+                tbl.style.minWidth = new_width + 'px';
+                tbl.style.width = new_width + 'px';
+
+            } else {
+                let col = headers_name2col[k.substr(0,k.length-2)]
+                let column = document.getElementsByClassName('col_' + col)
+                let new_width = +hash_dict[k]
+                for(let i=0;i<column.length;i++) {
+                    column[i].style.maxWidth = new_width + 'px';
+                    column[i].style.minWidth = new_width + 'px';
+                    column[i].style.width = new_width + 'px';
+                }
+            }
+        }
+    }
+}
+
+function setup_resizable_cols() {
+// http://jsfiddle.net/thrilleratplay/epcybL4v/
+    var thElm;
+    var startOffset;
+
+    Array.prototype.forEach.call(
+      document.querySelectorAll("table th"),
+      function (th) {
+        if (th.getElementsByClassName("grip").length > 0) {
+            return;
+        }
+        th.style.position = 'relative';
+//        th.parentNode.parentNode.style.tableLayout = 'fixed';
+//       th.parentNode.parentNode.style.width = th.parentNode.offsetWidth + 'px';
+
+        var grip = document.createElement('div');
+        grip.innerHTML = "&nbsp;";
+        grip.className = 'grip'
+        grip.style.top = 0;
+        grip.style.right = 0;
+        grip.style.bottom = 0;
+        grip.style.width = '5px';
+        grip.style.position = 'absolute';
+        grip.style.cursor = 'col-resize';
+        grip.addEventListener('mousedown', function (e) {
+            thElm = th;
+            startOffset = th.offsetWidth - e.pageX;
+            startOffsetTable = th.parentNode.parentNode.offsetWidth - e.pageX
+        });
+
+        th.appendChild(grip);
+      });
+
+    document.addEventListener('mousemove', function (e) {
+      if (thElm) {
+        let new_width = startOffset + e.pageX;
+        thElm.style.maxWidth = new_width + 'px';
+        thElm.style.minWidth = new_width + 'px';
+        let new_tbl_width = startOffsetTable + e.pageX;
+        thElm.parentNode.parentNode.style.maxWidth = new_tbl_width + 'px'
+        thElm.parentNode.parentNode.style.minWidth = new_tbl_width + 'px'
+        thElm.parentNode.parentNode.style.width =  new_tbl_width + 'px'
+        
+        update_hash('__tbl.w', new_tbl_width)
+        update_hash(headers_col2name[thElm.dataset.col] + '.w', new_width)
+        update_width()
+      }
+    });
+
+    document.addEventListener('mouseup', function () {
+        thElm = undefined;
+    });
 }
 
 window.addEventListener('load', function() {
     load_data()
+    setup_hash()
     setup_filters()
     render(document.getElementById('note-container'));
     rendered = true;
+    setup_resizable_cols()
+    update_width()
 });
 
 function update() {
-    //render(document.getElementById('note-container'));
     update_filters()
+    setup_filters()
+    render(document.getElementById('note-container'));
+    rendered = true;
+    setup_resizable_cols()
+    update_width()
 }
 
 function add_row(e) {
