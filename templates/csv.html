@@ -484,6 +484,15 @@ window.addEventListener('load', function() {
     update_width()
 });
 
+window.addEventListener('hashchange', function() {
+    setup_hash()
+    setup_filters()
+    render(document.getElementById('note-container'));
+    rendered = true;
+    setup_resizable_cols()
+    update_width()
+})
+
 function update() {
     update_filters()
     setup_filters()
