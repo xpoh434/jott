@@ -109,6 +109,10 @@ div.cell_edit {
     height: 100%;
 }
 
+div.grip {
+    touch-action: none;
+}
+
 </style>
 <script type="text/x-mathjax-config">
       MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
@@ -233,6 +237,7 @@ function update_cell(e) {
 }
 
 function handle_esc(e) {
+    e.preventDefault()
     let o = e.target
     if (e.which == 27) {
         o.blur()
@@ -245,7 +250,6 @@ function handle_esc(e) {
         elem = document.getElementById('cell_'+row+'_'+(+col+1))
         if(elem == undefined) elem = document.getElementById('cell_'+(+row+1)+'_0')
         if(elem != undefined) elem.click()
-        e.preventDefault()
         return false;
     }
 }
@@ -422,8 +426,8 @@ function update_width() {
 
 function setup_resizable_cols() {
 // http://jsfiddle.net/thrilleratplay/epcybL4v/
-    var thElm;
-    var startOffset;
+    let thElm;
+    let startOffset;
 
     Array.prototype.forEach.call(
       document.querySelectorAll("table th"),
@@ -435,16 +439,17 @@ function setup_resizable_cols() {
 //        th.parentNode.parentNode.style.tableLayout = 'fixed';
 //       th.parentNode.parentNode.style.width = th.parentNode.offsetWidth + 'px';
 
-        var grip = document.createElement('div');
+        let grip = document.createElement('div');
         grip.innerHTML = "&nbsp;";
         grip.className = 'grip'
         grip.style.top = 0;
         grip.style.right = 0;
         grip.style.bottom = 0;
-        grip.style.width = '5px';
+        grip.style.width = '10px';
         grip.style.position = 'absolute';
         grip.style.cursor = 'col-resize';
-        grip.addEventListener('mousedown', function (e) {
+        grip.addEventListener('pointerdown', function (e) {
+            e.preventDefault()
             thElm = th;
             startOffset = th.offsetWidth - e.pageX;
             startOffsetTable = th.parentNode.parentNode.offsetWidth - e.pageX
@@ -453,25 +458,38 @@ function setup_resizable_cols() {
         th.appendChild(grip);
       });
 
-    document.addEventListener('mousemove', function (e) {
+	evt_handler = function (e) {
       if (thElm) {
-        let new_width = startOffset + e.pageX;
+          e.preventDefault()
+        pageX = e.pageX
+        if (pageX == undefined) {
+            pageX = e.changedTouches[0].pageX
+        }
+        let new_width = startOffset + pageX;
         thElm.style.maxWidth = new_width + 'px';
         thElm.style.minWidth = new_width + 'px';
-        let new_tbl_width = startOffsetTable + e.pageX;
+        let new_tbl_width = startOffsetTable + pageX;
         thElm.parentNode.parentNode.style.maxWidth = new_tbl_width + 'px'
         thElm.parentNode.parentNode.style.minWidth = new_tbl_width + 'px'
         thElm.parentNode.parentNode.style.width =  new_tbl_width + 'px'
-        
+
         update_hash('__tbl.w', new_tbl_width)
         update_hash(headers_col2name[thElm.dataset.col] + '.w', new_width)
         update_width()
-      }
-    });
 
-    document.addEventListener('mouseup', function () {
+      }
+
+    }
+
+    document.addEventListener('pointermove', evt_handler)
+
+    document.addEventListener('pointerup', function () {
         thElm = undefined;
     });
+    document.addEventListener('pointercancel', function () {
+        thElm = undefined;
+    });
+
 }
 
 window.addEventListener('load', function() {
