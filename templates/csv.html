@@ -113,6 +113,10 @@ div.grip {
     touch-action: none;
 }
 
+td.highlight,th.highlight  {
+    background-color: #eeeeee
+}
+
 </style>
 <script type="text/x-mathjax-config">
       MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
@@ -136,6 +140,22 @@ var column_widths = {}
 
 var hash_dict = {}
 
+var highlight_row_col = undefined
+
+function add_class(el, className) {
+    let arr = el.className.split(' ');
+    if (arr.indexOf(className) == -1) {
+        el.className += ' ' + className;
+    }
+}
+function remove_class(el, className) {
+    let arr = el.className.split(' ');
+    let idx = arr.indexOf(className)
+    if (idx > -1) {
+        arr.splice(idx, 1)
+        el.className = arr.join(' ')
+    }
+}
 function to_csv(odata) {
 	return odata.map(row=>row.map(cell=> {
         if (cell.indexOf('\n') >=0 ||
@@ -302,6 +322,39 @@ function update_filters() {
 //    window.location.search = params.join('&')
 }
 
+
+function highlight(e) {
+    if (highlight_row_col == [e.target.dataset.col, e.target.dataset.row]) return;
+    let col_cells = document.getElementsByClassName('col_' + e.target.dataset.col)
+    let row_cells = document.getElementsByClassName('row_' + e.target.dataset.row)
+
+    for(let i=0;i<col_cells.length;i++) {
+        add_class(col_cells[i], 'highlight')
+    }
+
+    for(let i=0;i<row_cells.length;i++) {
+        add_class(row_cells[i], 'highlight')
+    }
+
+    highlight_row_col = [e.target.dataset.col, e.target.dataset.row]
+}
+
+function unhighlight(e) {
+    let col_cells = document.getElementsByClassName('col_' + e.target.dataset.col)
+    let row_cells = document.getElementsByClassName('row_' + e.target.dataset.row)
+
+    for(let i=0;i<col_cells.length;i++) {
+        remove_class(col_cells[i], 'highlight')
+    }
+
+    for(let i=0;i<row_cells.length;i++) {
+        remove_class(row_cells[i], 'highlight')
+    }
+
+    if (highlight_row_col == [e.target.dataset.col, e.target.dataset.row]) {
+        highlight_row_col = undefined
+    }
+}
 // A series of rendering passes
 function render(elem) {
     let new_elem = document.createElement('div');
@@ -317,11 +370,13 @@ function render(elem) {
     .selectAll(function(d){return this.querySelectorAll((d[0]==0)?"th":"td");})
     .data(function(d){ return d[1].map(x=>[d[0], x]); })
     .enter().append(function(d) {return document.createElement((d[0]==0) ? "th" : "td");})
-    .attr("class",function(d, i) {return "cell col_" + i})
+    .attr("class",function(d, i) {return "cell col_" + i + " row_" + d[0]})
     .attr("onclick", function(d) { return d[0] >0 ? "edit_cell(event)" : ""; } )
     .attr("data-col", function(d, i) { return i; })
     .attr("data-row", function(d) { return d[0]; })
     .attr("id", function(d, i) { return "cell_" + d[0] + "_" + i;} )
+    .attr("onmouseover", "highlight(event)")
+    .attr("onmouseout", "unhighlight(event)")
     .html(function(d, col){
         if (d[0] == 0) {
            html = d[1] + "<br><select class=\"filter\" id=\"filter_"+col+"\" onchange=\"update()\"><option values=\"-\">-</option>";
