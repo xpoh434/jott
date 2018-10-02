@@ -633,6 +633,9 @@ function add_row(e) {
      }
      rowdata = odata[Math.min(row, odata.length-1)].slice(0)
      rowdata.fill("")
+     for(let i in filter_values) {
+        rowdata[headers_name2col[i]] = filter_values[i]
+     }
      odata.splice(row, 0, rowdata)
      update()
 }
