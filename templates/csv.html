@@ -1,4 +1,4 @@
-<html
+<html>
 
 <meta name="viewport" content="width=device-width, user-scalable=yes" />
 <head>
@@ -16,7 +16,7 @@ html, body {
     font-family: 'Inconsolata', monospace;
 }
 body {
-    padding: 10px;
+    padding: 0px;
 }
 #name {
     position: absolute;
@@ -61,11 +61,31 @@ div.pre {
     border: solid 1px;
     padding: 0px 10px 0px 10px;
 }
-table, td, th {
-    border-collapse: collapse;
-    border: 2px black solid;
+table {
+   border: none;
+    padding: 0px;
+    word-wrap: break-word;
+    background-color: white;
+    border-spacing: 0px;
+}
+td, th {
+    border-left: none;
+    border-right: 1px black solid;
+    border-top: none;
+    border-bottom: 1px black solid;
     padding: 3px;
     word-wrap: break-word;
+    background-color: white;
+    border-spacing: 0px;
+    position: relative;
+    z-index:0;
+}
+
+td.row_0, th.row_0 {
+    border-top: 1px black solid;
+}
+td.col_0, th.col_0 {
+    border-left: 1px black solid;
 }
 
 td.cell:hover {
@@ -97,6 +117,7 @@ button, input, select {
     font-family: inherit;
     font-size: inherit;
     text-align: inherit;
+    z-index: inherit;
 }
 
 select.filter {
@@ -117,6 +138,32 @@ td.highlight,th.highlight  {
     background-color: #eeeeee
 }
 
+td.freezed, th.freezed {
+    z-index:2;
+}
+
+td.freezed_corner, th.freezed_corner {
+    z-index:3;
+}
+
+td.freezed_right_border, th.freezed_right_border {
+    border-right: 2px black solid;
+}
+
+td.freezed_bottom_border, th.freezed_bottom_border {
+    border-bottom: 2px black solid;
+}
+div#note-container {
+    width:100%;
+    height:100%;
+
+}
+div#heading {
+    width:100%;
+    z-index:4;
+    position: relative;
+    background-color: white;
+}
 </style>
 <script type="text/x-mathjax-config">
       MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
@@ -148,12 +195,15 @@ function add_class(el, className) {
         el.className += ' ' + className;
     }
 }
-function remove_class(el, className) {
-    let arr = el.className.split(' ');
-    let idx = arr.indexOf(className)
-    if (idx > -1) {
-        arr.splice(idx, 1)
-        el.className = arr.join(' ')
+function remove_class(el, classNames) {
+    let className=classNames.split(' ');
+    for(let i=0;i<className.length;i++) {
+        let arr = el.className.split(' ');
+        let idx = arr.indexOf(className[i])
+        if (idx > -1) {
+            arr.splice(idx, 1)
+            el.className = arr.join(' ')
+        }
     }
 }
 function to_csv(odata) {
@@ -261,7 +311,6 @@ function handle_esc(e) {
     let o = e.target
     if (e.which == 27) {
         o.blur()
-        e.peventDefault()
         return false;
     } else if (e.which == 9) {
         o.blur()
@@ -364,16 +413,18 @@ function render(elem) {
     d3.select(new_elem)
     .append("table")
     .selectAll("tr")
-    .data(rows.map(i=>[i, odata[i]]))
+    .data(rows.map((i, idx, arr)=>[i, odata[i], arr[idx-1]]))
     .enter().append("tr")
     .attr("class", function(d) {return "row_"+d[0];})
     .selectAll(function(d){return this.querySelectorAll((d[0]==0)?"th":"td");})
-    .data(function(d){ return d[1].map(x=>[d[0], x]); })
+    .data(function(d){ return d[1].map(x=>[d[0], x, d[2]]); })
     .enter().append(function(d) {return document.createElement((d[0]==0) ? "th" : "td");})
     .attr("class",function(d, i) {return "cell col_" + i + " row_" + d[0]})
     .attr("onclick", function(d) { return d[0] >0 ? "edit_cell(event)" : ""; } )
     .attr("data-col", function(d, i) { return i; })
+    .attr("data-prev-col", function(d, i) {return i-1;})
     .attr("data-row", function(d) { return d[0]; })
+    .attr("data-prev-row", function(d) { return d[2]; })
     .attr("id", function(d, i) { return "cell_" + d[0] + "_" + i;} )
     .attr("onmouseover", "highlight(event)")
     .attr("onmouseout", "unhighlight(event)")
@@ -595,6 +646,85 @@ function delete_row(e) {
 }
 
 
+var freezed = undefined
+function freezed_scroll_handler(e) {
+    let translateY = "translate3d(0,"+e.target.scrollTop+"px, 0)";
+    let row = freezed[0]
+    let col = freezed[1]
+    let cell = document.getElementById('cell_'+row+'_'+col)
+    for(let i=0;i<=row-1;i++) {
+        let cells = document.getElementsByClassName("row_"+i);
+        for(let j=0;j<cells.length;j++) {
+            if(cells[j].tagName != 'TD' && cells[j].tagName != 'TH') continue
+            if(+cells[j].dataset.col >= col) {
+                cells[j].style.transform = translateY
+                add_class(cells[j],'freezed')
+                if(cell && cells[j].dataset.row == cell.dataset.prevRow) add_class(cells[j],'freezed_bottom_border')
+              }
+        }
+    }
+    let translateX = "translate3d("+e.target.scrollLeft+"px,0,0)";
+    let translate2 = "translate3d("+e.target.scrollLeft+"px,"+e.target.scrollTop+"px,0)";
+    for(let i=0;i<=col-1;i++) {
+        let cells = document.getElementsByClassName("col_"+i);
+        for(let j=0;j<cells.length;j++) {
+            if(cells[j].tagName != 'TD' && cells[j].tagName != 'TH') continue
+            if(+cells[j].dataset.row < row) {
+                cells[j].style.transform = translate2
+                add_class(cells[j], 'freezed_corner')
+            } else {           
+                cells[j].style.transform = translateX
+                if(cell && cells[j].dataset.col == cell.dataset.prevCol) add_class(cells[j],'freezed_right_border')
+                add_class(cells[j],'freezed')
+            }
+        }
+    }
+
+    let heading = document.getElementById('heading')
+    heading.style.transform=translate2;
+}
+
+function reset_freeze() {
+    if(freezed == undefined) return;
+
+    row = freezed[0]
+    col = freezed[1]
+    let cell = document.getElementById('cell_'+row+'_'+col)
+    for(let i=0;i<=row-1;i++) {
+        let cells = document.getElementsByClassName("row_"+i);
+        for(let j=0;j<cells.length;j++) {
+                cells[j].style.transform = ''
+                remove_class(cells[j], 'freezed freezed_right_border freezed_bottom_border freezed_corner')
+        }
+    }
+    for(let i=0;i<=col-1;i++) {
+        let cells = document.getElementsByClassName("col_"+i);
+        for(let j=0;j<cells.length;j++) {
+             cells[j].style.transform = ''
+             remove_class(cells[j], 'freezed freezed_right_border freezed_bottom_border freezed_corner')
+        }
+    }
+    let heading = document.getElementById('heading')
+    heading.style.transform = ''
+    freezed = undefined
+   
+ 
+}
+
+function toggle_freeze(row, col) {
+    if(freezed == undefined) {
+        freezed = [row, col]
+        document.getElementById('note-container').parentNode.addEventListener("scroll", freezed_scroll_handler);
+
+    } else {
+       document.getElementById('note-container').parentNode.removeEventListener("scroll", freezed_scroll_handler)
+       reset_freeze()
+       freezed = undefined
+    }
+
+}
+
+
 document.onkeydown = function(e) {
     if(!rendered) {
         return true;
@@ -605,6 +735,8 @@ document.onkeydown = function(e) {
     } else if(e.which == 68 && e.ctrlKey && e.shiftKey && !e.altKey) {
         delete_row(e)
         return false;
+    } else if(e.which == 70 && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+        toggle_freeze(highlight_row_col[1], highlight_row_col[0]) 
     }
     return true;
 }
@@ -613,6 +745,8 @@ document.onkeydown = function(e) {
 </head>
 
 <body>
+<div style='height:100%; min-height:100%; overflow: auto;'>
+<div id='heading'>
 <input id="name" value="{{name}}" placeholder="name#password"/>
 <button onclick="save_note(
     this,
@@ -620,7 +754,7 @@ document.onkeydown = function(e) {
     )">save</button>
 <br>
 <br>
-<div>
+</div>
 <div id="note-container">{{ note }}</div>
 </div>
 
