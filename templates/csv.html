@@ -307,12 +307,13 @@ function update_cell(e) {
 }
 
 function handle_esc(e) {
-    e.preventDefault()
     let o = e.target
     if (e.which == 27) {
+        e.preventDefault()
         o.blur()
         return false;
     } else if (e.which == 9) {
+        e.preventDefault()
         o.blur()
         row = o.dataset.row
         col = o.dataset.col
