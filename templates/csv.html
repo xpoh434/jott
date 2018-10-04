@@ -239,7 +239,7 @@ function save_note(button, input) {
             } else {
                 var newurl = window.location.origin +
                     '/csv/' +
-                    name;
+                    name + window.location.hash;
                 window.history.pushState(
                     { path: newurl }, 
                     '', 
