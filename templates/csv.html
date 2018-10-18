@@ -493,7 +493,7 @@ function update_hash_string() {
     for(let k in hash_dict) {
         params.push(encodeURIComponent(k) + '=' + encodeURIComponent(hash_dict[k]))
     }
-    window.location.hash = params.join('&')
+    window.location.replace('#' + params.join('&'))
 }
 
 
