@@ -741,6 +741,13 @@ function texDown(src, ...renderers) {
     renderers.forEach(r => r.done());
 }
 
+var htmlent = {
+'&':'&amp', '>':'&gt', '<':'&lt'
+}
+function esc_html(x) {
+    return htmlent[x] || x
+}
+
 class Renderer {
   constructor() {
     this.res = ''; 
@@ -766,7 +773,7 @@ class Renderer {
     this.img = (title, src) => this.res += `<img title='${title}' src='${src}' />`;
     this.esc = (val) => this.res += val[0];
     this.txt = (val) => this.res += val;
-    this.pre = (val) => this.res += `<div class='pre'><pre>${val}</pre></div>`;
+    this.pre = (val) => this.res += `<div class='pre'><pre>${val.replace(/[&><]/g, esc_html)}</pre></div>`;
     this.tikz = (tikz) => this.res += `<tikz>${tikz}</tikz>`;
     this.eol = () => { };
     this.blank = () => { };
