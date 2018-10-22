@@ -237,13 +237,13 @@ function save_note(button, input) {
             if (httpRequest.status != 200) {
                 alert("Error: " + httpRequest.response);
             } else {
-                var newurl = window.location.origin +
-                    '/csv/' +
-                    name + window.location.hash;
-                window.history.pushState(
-                    { path: newurl }, 
-                    '', 
-                    newurl);
+//                var newurl = window.location.origin +
+//                    '/csv/' +
+//                    name + window.location.hash;
+//                window.history.pushState(
+//                    { path: newurl }, 
+//                    '', 
+//                    newurl);
                 button.classList.toggle('dimmed', true);
                 button.onclick = function() {};
                 setTimeout(function(){
@@ -251,7 +251,7 @@ function save_note(button, input) {
                     button.onclick = function() {save_note(
                         this,
                     )};
-                }, 5000);
+                }, 1000);
             }
         }
     };
