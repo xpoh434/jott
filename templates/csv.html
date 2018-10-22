@@ -314,11 +314,20 @@ function handle_esc(e) {
         return false;
     } else if (e.which == 9) {
         e.preventDefault()
-        o.blur()
-        row = o.dataset.row
-        col = o.dataset.col
-        elem = document.getElementById('cell_'+row+'_'+(+col+1))
-        if(elem == undefined) elem = document.getElementById('cell_'+(+row+1)+'_0')
+        let row = o.dataset.row
+        let col = o.dataset.col
+        let cello = document.getElementById('cell_'+row+'_'+col)
+        if (!e.shiftKey) {
+            let nextrow = cello.dataset.nextrow
+            let nextcol = cello.dataset.nextcol
+            elem = document.getElementById('cell_'+row+'_'+nextcol)        
+            if(elem == undefined) elem = document.getElementById('cell_'+nextrow+'_0')
+        } else {
+            let prevrow = cello.dataset.prevrow
+            let prevcol = cello.dataset.prevcol
+            elem = document.getElementById('cell_'+row+'_'+prevcol)        
+            if(elem == undefined) elem = document.getElementById('cell_'+prevrow+'_'+(ncols-1))
+        }
         if(elem != undefined) elem.click()
         return false;
     }
@@ -414,18 +423,20 @@ function render(elem) {
     d3.select(new_elem)
     .append("table")
     .selectAll("tr")
-    .data(rows.map((i, idx, arr)=>[i, odata[i], arr[idx-1]]))
+    .data(rows.map((i, idx, arr)=>[i, odata[i], arr[idx-1], arr[idx+1]]))
     .enter().append("tr")
     .attr("class", function(d) {return "row_"+d[0];})
     .selectAll(function(d){return this.querySelectorAll((d[0]==0)?"th":"td");})
-    .data(function(d){ return d[1].map(x=>[d[0], x, d[2]]); })
+    .data(function(d){ return d[1].map(x=>[d[0], x, d[2], d[3]]); })
     .enter().append(function(d) {return document.createElement((d[0]==0) ? "th" : "td");})
     .attr("class",function(d, i) {return "cell col_" + i + " row_" + d[0]})
     .attr("onclick", function(d) { return d[0] >0 ? "edit_cell(event)" : ""; } )
     .attr("data-col", function(d, i) { return i; })
-    .attr("data-prev-col", function(d, i) {return i-1;})
+    .attr("data-prevCol", function(d, i) {return i-1;})
+    .attr("data-nextCol", function(d, i) {return i+1;})
     .attr("data-row", function(d) { return d[0]; })
-    .attr("data-prev-row", function(d) { return d[2]; })
+    .attr("data-prevRow", function(d) { return d[2]; })
+    .attr("data-nextRow", function(d) { return d[3]; })
     .attr("id", function(d, i) { return "cell_" + d[0] + "_" + i;} )
     .attr("onmouseover", "highlight(event)")
     .attr("onmouseout", "unhighlight(event)")
