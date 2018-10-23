@@ -519,7 +519,7 @@ function moo_factory() {
 }
 const moo = moo_factory();
 const tokens = {
-    pre: /```\n[ -~\n]+?\n```/,
+    pre: /```.*$[\s\S]*?```/,
     h6: /^###### /,
     h5: /^##### /,
     h4: /^#### /,
@@ -704,8 +704,13 @@ function texDown(src, ...renderers) {
         pre: () => {
             clearElements();
             const txt = currentToken.text;
-            const tex = txt.substring(4, txt.length - 4);
-            renderers.forEach(r => r.pre(tex));
+            const patt = /```(.*)$([\s\S]*)```/gm
+            let res = patt.exec(txt)
+            const tex = res[2] //txt.substring(4, txt.length - 4);
+            const lang = res[1]|| 'plaintext'
+            const id = Math.random().toString(36).substring(2,5) + (new Date().getTime() % 10000)
+            renderers.forEach(r => r.pre(tex, lang, id));
+
         },
         esc: () => {
             renderers.forEach(r => r.esc(currentToken.text));
@@ -773,11 +778,13 @@ class Renderer {
     this.img = (title, src) => this.res += `<img title='${title}' src='${src}' />`;
     this.esc = (val) => this.res += val[0];
     this.txt = (val) => this.res += val;
-    this.pre = (val) => this.res += `<div class='pre'><pre>${val.replace(/[&><]/g, esc_html)}</pre></div>`;
+    this.pre = (val, lang, id) => this.res += `<div class='pre' id='${id}'><pre><code class='${lang}'>${val.replace(/[&><]/g, esc_html)}</code></pre></div><img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" width="0" height="0" alt="" onload="hljs.highlightBlock(document.getElementById('${id}').firstChild.firstChild)"/>`;
     this.tikz = (tikz) => this.res += `<tikz>${tikz}</tikz>`;
     this.eol = () => { };
     this.blank = () => { };
     this.done = () => { };
+
+    this.hljs = undefined;
   }   
 }
 
