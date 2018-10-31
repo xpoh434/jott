@@ -528,7 +528,7 @@ const tokens = {
     h1: /^# /,
     esc: /\*\*|\/\/|__/,
     b: '*',
-    i: '/',
+//    i: '/',
     u: '_',
     uli: /^[ ]*\- /,
     oli: /^[ ]*\d+\. /,
@@ -704,7 +704,7 @@ function texDown(src, ...renderers) {
         pre: () => {
             clearElements();
             const txt = currentToken.text;
-            const patt = /```(.*)$([\s\S]*)```/gm
+            const patt = /```(.*)$\n([\s\S]*)```/gm
             let res = patt.exec(txt)
             const tex = res[2] //txt.substring(4, txt.length - 4);
             const lang = res[1]|| 'plaintext'
